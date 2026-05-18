@@ -6,7 +6,7 @@ from datetime import datetime
 import boto3
 
 
-BUCKET = "gio76-bucket-datalke-ia"
+BUCKET = "TU_BUCKET_NAME"
 CARPETA_DESTINO = "raw"
 INTERVALO_SEGUNDOS = 30
 SENSORES = ("temperatura", "humedad", "presion")
