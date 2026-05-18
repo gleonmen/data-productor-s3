@@ -1,0 +1,56 @@
+import sys
+from pyspark.context import SparkContext
+from awsglue.context import GlueContext
+from awsglue.job import Job
+from awsglue.dynamicframe import DynamicFrame
+from pyspark.sql.functions import col, when, to_date
+
+# Inicialización obligatoria para sistemas distribuidos de AWS
+
+glueContext = GlueContext(SparkContext.getOrCreate())
+spark = glueContext.spark_session
+job = Job(glueContext)
+
+# --- 1. EXTRACCIÓN (RAW LAYER) ---
+# Leemos los datos tal cual llegan (pueden ser CSV, JSON, etc.)
+path_raw = "s3://TU_BUCKET_NAME/raw/"
+datasource = glueContext.create_dynamic_frame.from_options(
+    format_options={"withHeader": True, "separator": ","},
+    connection_type="s3",
+    format="csv",
+    connection_options={"paths": [path_raw]},
+)
+
+
+# Convertimos a DataFrame de Spark para transformaciones avanzadas de Python
+df = datasource.toDF()
+
+
+# --- 2. TRANSFORMACIÓN (SILVER LAYER / PRE-IA) ---
+# Aquí aplicamos lógica de ingeniería: limpieza y tipado
+# Un modelo de IA no puede leer fechas en texto o valores nulos
+
+processed_df = (
+    df.withColumn("fecha", to_date(col("fecha"), "yyyy-MM-dd"))
+    .withColumn("monto", col("monto").cast("double"))
+    .filter(col("monto") > 0)
+    .fillna({"categoria": "Sin Clasificar"})
+)
+
+# --- 3. CARGA (GOLD LAYER / CONSUMO) ---
+# Guardamos en PARQUET: Formato columnar que reduce costos y acelera la IA
+
+dynamic_frame_write = DynamicFrame.fromDF(
+    processed_df, glueContext, "dynamic_frame_write"
+)
+
+path_processed = "s3://TU_BUCKET_NAME/processed/"
+
+glueContext.write_dynamic_frame.from_options(
+    frame=dynamic_frame_write,
+    connection_type="s3",
+    connection_options={"path": path_processed},
+    format="parquet",
+)
+
+job.commit()
