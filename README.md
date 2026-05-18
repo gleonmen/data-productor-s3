@@ -27,10 +27,10 @@ Para ejecutar el proyecto necesitas:
 - Un bucket de S3 existente
 - Permisos para escribir objetos en ese bucket
 
-El bucket configurado actualmente en `productor.py` es:
+Antes de ejecutar el productor, cambia el valor de `BUCKET` en `productor.py` por el nombre de tu bucket:
 
-```text
-lab-streaming-139035987829
+```python
+BUCKET = "coloca-el-nombre-de-tu-bucket-aqui"
 ```
 
 ## Instalacion
